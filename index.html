@@ -218,10 +218,10 @@ async function saveToSupabase() {
       });
     });
     // Upsert all rows - delete existing and insert fresh
-    const { error: delErr } = await supabaseClient.from('assets').delete().neq('id', 0);
+    const { error: delErr } = await supabaseClient.from('fin_assets').delete().neq('id', 0);
     if (delErr) throw delErr;
     if (allRows.length > 0) {
-      const { error: insErr } = await supabaseClient.from('assets').insert(allRows);
+      const { error: insErr } = await supabaseClient.from('fin_assets').insert(allRows);
       if (insErr) throw insErr;
     }
     setSyncStatus('synced', '☁ מסונכרן');
@@ -234,7 +234,7 @@ async function saveToSupabase() {
 async function loadFromSupabase() {
   setSyncStatus('saving', '⏳ טוען...');
   try {
-    const { data, error } = await supabaseClient.from('assets').select('*').order('sort_order', { ascending: true });
+    const { data, error } = await supabaseClient.from('fin_assets').select('*').order('sort_order', { ascending: true });
     if (error) throw error;
     if (data && data.length > 0) {
       KEYS.forEach(k => { state[k] = []; });
