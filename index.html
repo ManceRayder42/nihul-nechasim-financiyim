@@ -5,118 +5,81 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול נכסים פיננסיים</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
-    --border: #2e3350; --accent: #4f8ef7; --accent2: #34d399;
-    --danger: #f87171; --warning: #fbbf24; --text: #e8ecf5;
-    --text2: #8892b0; --text3: #4a5280; --purple: #a78bfa;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; }
-
-  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-  .header h1 { font-size: 22px; font-weight: 800; }
-  .header h1 span { color: var(--accent); }
-
-  .rate-bar { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; flex-wrap: wrap; }
-  .rate-bar label { font-size: 13px; color: var(--text2); white-space: nowrap; }
-  .rate-bar input {
-    width: 80px; background: var(--surface2); border: 1px solid var(--accent);
-    border-radius: 8px; color: var(--accent); font-family: 'Heebo', sans-serif;
-    font-size: 16px; font-weight: 700; padding: 4px 10px; text-align: center; outline: none;
-    -moz-appearance: textfield;
-  }
-  .rate-bar input::-webkit-outer-spin-button,
-  .rate-bar input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .rate-badge { font-size: 11px; background: rgba(79,142,247,0.15); color: var(--accent); padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
-  .btc-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #f97316; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); border-radius: 20px; padding: 3px 10px; }
-  .btc-dot { width: 6px; height: 6px; border-radius: 50%; background: #f97316; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-  .btn-reset { font-size: 11px; background: rgba(248,113,113,0.1); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); border-radius: 20px; padding: 3px 10px; cursor: pointer; white-space: nowrap; font-family: 'Heebo', sans-serif; }
-  .btn-reset:hover { background: rgba(248,113,113,0.2); }
-
-  /* כרטיסי סיכום */
-  .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 28px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; position: relative; overflow: hidden; }
-  .card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; border-radius: 0 14px 14px 0; }
-  .card.blue::before  { background: var(--accent); }
-  .card.green::before { background: var(--accent2); }
-  .card.red::before   { background: var(--danger); }
-  .card.purple::before { background: var(--purple); }
-  .card-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
-  .card-value { font-size: 24px; font-weight: 800; direction: ltr; text-align: right; }
-  .card.blue .card-value   { color: var(--accent); }
-  .card.green .card-value  { color: var(--accent2); }
-  .card.red .card-value    { color: var(--danger); }
-  .card.purple .card-value { color: var(--purple); }
-  .card-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-
-  /* טבלאות */
-  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
-  /* סקשן לא-נזיל — מסגרת סגולה */
-  .section.illiquid { border-color: rgba(167,139,250,0.3); }
-  .section.illiquid .section-header { background: rgba(167,139,250,0.08); border-bottom-color: rgba(167,139,250,0.2); }
-  .section-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface2); }
-  .section-title { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-  .section-note { font-size: 11px; color: var(--text3); font-weight: 400; text-transform: none; letter-spacing: 0; margin-right: 8px; }
-  .btn-add { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); border-radius: 8px; padding: 5px 12px; font-size: 12px; font-family: 'Heebo', sans-serif; cursor: pointer; }
-  .btn-add:hover { background: rgba(79,142,247,0.25); }
-
-  table { width: 100%; border-collapse: collapse; }
-  thead th { padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text3); text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  tbody tr { border-bottom: 1px solid var(--border); }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: rgba(255,255,255,0.02); }
-  td { padding: 6px 14px; font-size: 13px; vertical-align: middle; }
-
-  td input[type="text"] {
-    background: transparent; border: 1px solid transparent;
-    color: var(--text); font-family: 'Heebo', sans-serif; font-size: 13px;
-    width: 100%; outline: none; padding: 5px 8px; border-radius: 6px;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  td input[type="text"]:hover  { border-color: var(--border); background: rgba(255,255,255,0.03); }
-  td input[type="text"]:focus  { border-color: var(--accent); background: var(--surface2); }
-  td input.amount     { direction: ltr; text-align: left; color: var(--warning); font-weight: 600; }
-  td input.amount-ils { direction: ltr; text-align: left; color: var(--text); font-weight: 500; }
-  td input[readonly]  { opacity: 0.45; cursor: default; }
-
-  select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'Heebo', sans-serif; font-size: 12px; padding: 4px 6px; border-radius: 6px; outline: none; cursor: pointer; }
-
-  .ils-value         { font-weight: 600; color: var(--accent2); direction: ltr; text-align: right; white-space: nowrap; }
-  .ils-value.purple  { color: var(--purple); }
-  td.delete-col { width: 36px; text-align: center; }
-  .btn-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; line-height: 1; }
-  .btn-del:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
-
-  .total-row td { font-weight: 700; background: var(--surface2); font-size: 13px; }
-  .total-row .ils-value { font-size: 15px; }
-
-  /* מפריד בין חלקים */
-  .divider {
-    display: flex; align-items: center; gap: 14px;
-    margin: 32px 0 20px; color: var(--text3); font-size: 12px;
-  }
-  .divider::before, .divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--border);
-  }
-  .divider span {
-    background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.25);
-    color: var(--purple); padding: 4px 14px; border-radius: 20px;
-    font-size: 12px; font-weight: 600; white-space: nowrap;
-  }
-
-  .net-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-  .net-label { font-size: 14px; font-weight: 600; }
-  .net-value { font-size: 28px; font-weight: 800; color: var(--accent2); direction: ltr; }
-
-  .footer { text-align: center; font-size: 11px; color: var(--text3); margin-top: 8px; }
-  @media (max-width: 700px) { .cards { grid-template-columns: 1fr 1fr; } body { padding: 12px; } }
+:root { --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a; --border: #2e3350; --accent: #4f8ef7; --accent2: #34d399; --danger: #f87171; --warning: #fbbf24; --text: #e8ecf5; --text2: #8892b0; --text3: #4a5280; --purple: #a78bfa; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 22px; font-weight: 800; }
+.header h1 span { color: var(--accent); }
+.rate-bar { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; flex-wrap: wrap; }
+.rate-bar label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+.rate-bar input { width: 80px; background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); font-family: 'Heebo', sans-serif; font-size: 16px; font-weight: 700; padding: 4px 10px; text-align: center; outline: none; -moz-appearance: textfield; }
+.rate-bar input::-webkit-outer-spin-button, .rate-bar input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rate-badge { font-size: 11px; background: rgba(79,142,247,0.15); color: var(--accent); padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.btc-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #f97316; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); border-radius: 20px; padding: 3px 10px; }
+.btc-dot { width: 6px; height: 6px; border-radius: 50%; background: #f97316; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.btn-reset { font-size: 11px; background: rgba(248,113,113,0.1); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); border-radius: 20px; padding: 3px 10px; cursor: pointer; white-space: nowrap; font-family: 'Heebo', sans-serif; }
+.btn-reset:hover { background: rgba(248,113,113,0.2); }
+.sync-status { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
+.sync-status.synced { color: var(--accent2); background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.2); }
+.sync-status.saving { color: var(--warning); background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.2); }
+.sync-status.error { color: var(--danger); background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.2); }
+.cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 28px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; border-radius: 0 14px 14px 0; }
+.card.blue::before { background: var(--accent); }
+.card.green::before { background: var(--accent2); }
+.card.red::before { background: var(--danger); }
+.card.purple::before { background: var(--purple); }
+.card-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+.card-value { font-size: 24px; font-weight: 800; direction: ltr; text-align: right; }
+.card.blue .card-value { color: var(--accent); }
+.card.green .card-value { color: var(--accent2); }
+.card.red .card-value { color: var(--danger); }
+.card.purple .card-value { color: var(--purple); }
+.card-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+.section.illiquid { border-color: rgba(167,139,250,0.3); }
+.section.illiquid .section-header { background: rgba(167,139,250,0.08); border-bottom-color: rgba(167,139,250,0.2); }
+.section-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.section-title { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.section-note { font-size: 11px; color: var(--text3); font-weight: 400; text-transform: none; letter-spacing: 0; margin-right: 8px; }
+.btn-add { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); color: var(--accent); border-radius: 8px; padding: 5px 12px; font-size: 12px; font-family: 'Heebo', sans-serif; cursor: pointer; }
+.btn-add:hover { background: rgba(79,142,247,0.25); }
+table { width: 100%; border-collapse: collapse; }
+thead th { padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text3); text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+td { padding: 6px 14px; font-size: 13px; vertical-align: middle; }
+td input[type="text"] { background: transparent; border: 1px solid transparent; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 13px; width: 100%; outline: none; padding: 5px 8px; border-radius: 6px; transition: border-color 0.15s, background 0.15s; }
+td input[type="text"]:hover { border-color: var(--border); background: rgba(255,255,255,0.03); }
+td input[type="text"]:focus { border-color: var(--accent); background: var(--surface2); }
+td input.amount { direction: ltr; text-align: left; color: var(--warning); font-weight: 600; }
+td input.amount-ils { direction: ltr; text-align: left; color: var(--text); font-weight: 500; }
+td input[readonly] { opacity: 0.45; cursor: default; }
+select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'Heebo', sans-serif; font-size: 12px; padding: 4px 6px; border-radius: 6px; outline: none; cursor: pointer; }
+.ils-value { font-weight: 600; color: var(--accent2); direction: ltr; text-align: right; white-space: nowrap; }
+.ils-value.purple { color: var(--purple); }
+td.delete-col { width: 36px; text-align: center; }
+.btn-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; line-height: 1; }
+.btn-del:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
+.total-row td { font-weight: 700; background: var(--surface2); font-size: 13px; }
+.total-row .ils-value { font-size: 15px; }
+.divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 20px; color: var(--text3); font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.divider span { background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.25); color: var(--purple); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.net-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.net-label { font-size: 14px; font-weight: 600; }
+.net-value { font-size: 28px; font-weight: 800; color: var(--accent2); direction: ltr; }
+.footer { text-align: center; font-size: 11px; color: var(--text3); margin-top: 8px; }
+@media (max-width: 700px) { .cards { grid-template-columns: 1fr 1fr; } body { padding: 12px; } }
 </style>
 </head>
 <body>
-
 <div class="header">
   <h1>נכסים <span>פיננסיים</span></h1>
   <div class="rate-bar">
@@ -124,18 +87,17 @@
     <input type="number" id="usdRate" value="3.65" step="0.01" min="1" onchange="updateTotals()">
     <span class="rate-badge">עדכן ידנית</span>
     <span class="btc-live"><span class="btc-dot"></span><span id="btcPriceLabel">BTC: טוען...</span></span>
+    <span class="sync-status synced" id="syncStatus">☁ מסונכרן</span>
     <button class="btn-reset" onclick="resetData()">↺ איפוס נתונים</button>
   </div>
 </div>
 
-<!-- כרטיסי סיכום — נכסים נזילים בלבד -->
 <div class="cards">
   <div class="card blue"><div class="card-label">סה"כ נכסים נזילים</div><div class="card-value" id="totalAssets">₪0</div><div class="card-sub">לפני ניכוי התחייבויות</div></div>
   <div class="card red"><div class="card-label">התחייבויות</div><div class="card-value" id="totalLiabilities">₪0</div><div class="card-sub">משכנתא ואחרים</div></div>
   <div class="card green"><div class="card-label">שווי נטו נזיל</div><div class="card-value" id="netWorth">₪0</div><div class="card-sub">נכסים פחות התחייבויות</div></div>
 </div>
 
-<!-- נכסים נזילים -->
 <div class="section">
   <div class="section-header">
     <span class="section-title">💰 נכסים נזילים</span>
@@ -148,7 +110,6 @@
   </table>
 </div>
 
-<!-- התחייבויות -->
 <div class="section">
   <div class="section-header">
     <span class="section-title">📉 התחייבויות</span>
@@ -161,28 +122,21 @@
   </table>
 </div>
 
-<!-- שורת שווי נטו נזיל -->
 <div class="net-section">
   <div class="net-label">🏦 שווי נטו נזיל (נכסים פחות התחייבויות)</div>
   <div class="net-value" id="netWorthBig">₪0</div>
 </div>
 
-<!-- מפריד ויזואלי -->
 <div class="divider"><span>🔒 נכסים לא נזילים — לא נכללים בחישוב הכללי</span></div>
 
-<!-- כרטיס סיכום נכסים לא נזילים -->
 <div class="cards" style="grid-template-columns: repeat(2,1fr); margin-bottom: 20px;">
   <div class="card purple"><div class="card-label">סה"כ פנסיות</div><div class="card-value" id="totalPensions">₪0</div><div class="card-sub">גיא + תמר</div></div>
   <div class="card purple"><div class="card-label">סה"כ קרנות השתלמות (לא נזיל)</div><div class="card-value" id="totalTraining">₪0</div><div class="card-sub">לא זמין עדיין</div></div>
 </div>
 
-<!-- פנסיות -->
 <div class="section illiquid">
   <div class="section-header">
-    <div>
-      <span class="section-title">🏛️ פנסיות</span>
-      <span class="section-note">— לא נכלל בחישוב הכללי</span>
-    </div>
+    <div><span class="section-title">🏛️ פנסיות</span><span class="section-note">— לא נכלל בחישוב הכללי</span></div>
     <button class="btn-add" onclick="addRow('pensions')">+ הוסף שורה</button>
   </div>
   <table>
@@ -192,13 +146,9 @@
   </table>
 </div>
 
-<!-- קרנות השתלמות לא נזילות -->
 <div class="section illiquid">
   <div class="section-header">
-    <div>
-      <span class="section-title">📚 קרנות השתלמות לא נזילות</span>
-      <span class="section-note">— לא נכלל בחישוב הכללי</span>
-    </div>
+    <div><span class="section-title">📚 קרנות השתלמות לא נזילות</span><span class="section-note">— לא נכלל בחישוב הכללי</span></div>
     <button class="btn-add" onclick="addRow('training')">+ הוסף שורה</button>
   </div>
   <table>
@@ -208,72 +158,144 @@
   </table>
 </div>
 
-<div class="footer">נתונים נשמרים אוטומטית בדפדפן · לחץ על כל תא כדי לערוך · Tab למעבר בין תאים</div>
+<div class="footer">נתונים נשמרים אוטומטית ב-Supabase ובדפדפן · לחץ על כל תא כדי לערוך · Tab למעבר בין תאים</div>
 
 <script>
-// ─── ברירות מחדל ────────────────────────────────────────
+const SUPABASE_URL = 'https://eapplhjpmkpqnipvufwd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcHBsaGpwbWtwcW5pcHZ1ZndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMzgwNjYsImV4cCI6MjA4NjcxNDA2Nn0.aougjTve-LZBQRmUdIkEpHSiRuClILkD5caoIewiZW8';
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const DEFAULTS = {
   assets: [
-    { name: 'אינטר אקטיב',       details: 'תיק השקעות',  currency: 'USD', amount: 250000 },
-    { name: 'ביטקוין',            details: '1 BTC',        currency: 'BTC', amount: 1      },
-    { name: 'כסף בבית - דולר',   details: 'מזומן דולר',  currency: 'USD', amount: 27000  },
-    { name: 'מטבע חוץ בבנק',     details: 'אירו',         currency: 'EUR', amount: 20500  },
-    { name: 'שוטף בחשבון',       details: 'עו"ש',         currency: 'ILS', amount: 45000  },
-    { name: 'בורסה תל אביב',     details: 'ניירות ערך',  currency: 'ILS', amount: 93000  },
-    { name: 'קופת גמל להשקעה',  details: 'הראל',         currency: 'ILS', amount: 70000  },
-    { name: 'קרן השתלמות פניקס', details: 'נזיל 2030',   currency: 'ILS', amount: 30000  },
+    { name: 'אינטר אקטיב', details: 'תיק השקעות', currency: 'USD', amount: 250000 },
+    { name: 'ביטקוין', details: '1 BTC', currency: 'BTC', amount: 1 },
+    { name: 'כסף בבית - דולר', details: 'מזומן דולר', currency: 'USD', amount: 27000 },
+    { name: 'מטבע חוץ בבנק', details: 'אירו', currency: 'EUR', amount: 20500 },
+    { name: 'שוטף בחשבון', details: 'עו"ש', currency: 'ILS', amount: 45000 },
+    { name: 'בורסה תל אביב', details: 'ניירות ערך', currency: 'ILS', amount: 93000 },
+    { name: 'קופת גמל להשקעה', details: 'הראל', currency: 'ILS', amount: 70000 },
+    { name: 'קרן השתלמות פניקס', details: 'נזיל 2030', currency: 'ILS', amount: 30000 },
   ],
   liabilities: [
     { name: 'משכנתא', details: 'דירה', currency: 'ILS', amount: 284000 },
   ],
   pensions: [
-    { name: 'פנסיה מנורה',   details: 'גיא',  currency: 'ILS', amount: 443000 },
-    { name: 'פנסיה אקסלנס',  details: 'תמר',  currency: 'ILS', amount: 0      },
+    { name: 'פנסיה מנורה', details: 'גיא', currency: 'ILS', amount: 443000 },
+    { name: 'פנסיה אקסלנס', details: 'תמר', currency: 'ILS', amount: 0 },
   ],
   training: [
-    { name: 'קרן השתלמות',   details: 'גיא',  currency: 'ILS', amount: 0      },
-    { name: 'קרן השתלמות',   details: 'תמר',  currency: 'ILS', amount: 0      },
+    { name: 'קרן השתלמות', details: 'גיא', currency: 'ILS', amount: 0 },
+    { name: 'קרן השתלמות', details: 'תמר', currency: 'ILS', amount: 0 },
   ],
 };
 
-// ─── State ──────────────────────────────────────────────
 let state = {}, btcPriceUSD = 0;
-
 const KEYS = ['assets','liabilities','pensions','training'];
+let saveTimer = null;
 
-function loadData() {
+// ─── Supabase Sync ────────────────────────────────────────────────────
+function setSyncStatus(status, text) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status ' + status;
+  el.textContent = text;
+}
+
+async function saveToSupabase() {
+  setSyncStatus('saving', '⏳ שומר...');
+  try {
+    const allRows = [];
+    KEYS.forEach(type => {
+      state[type].forEach((row, i) => {
+        allRows.push({
+          asset_type: type,
+          name: row.name,
+          details: row.details || '',
+          currency: row.currency,
+          amount: row.amount,
+          sort_order: i
+        });
+      });
+    });
+    // Upsert all rows - delete existing and insert fresh
+    const { error: delErr } = await supabaseClient.from('assets').delete().neq('id', 0);
+    if (delErr) throw delErr;
+    if (allRows.length > 0) {
+      const { error: insErr } = await supabaseClient.from('assets').insert(allRows);
+      if (insErr) throw insErr;
+    }
+    setSyncStatus('synced', '☁ מסונכרן');
+  } catch (err) {
+    console.error('Supabase save error:', err);
+    setSyncStatus('error', '✕ שגיאת שמירה');
+  }
+}
+
+async function loadFromSupabase() {
+  setSyncStatus('saving', '⏳ טוען...');
+  try {
+    const { data, error } = await supabaseClient.from('assets').select('*').order('sort_order', { ascending: true });
+    if (error) throw error;
+    if (data && data.length > 0) {
+      KEYS.forEach(k => { state[k] = []; });
+      data.forEach(row => {
+        if (state[row.asset_type] !== undefined) {
+          state[row.asset_type].push({
+            name: row.name,
+            details: row.details,
+            currency: row.currency,
+            amount: row.amount
+          });
+        }
+      });
+      setSyncStatus('synced', '☁ מסונכרן');
+      return true;
+    }
+    setSyncStatus('synced', '☁ מסונכרן');
+    return false;
+  } catch (err) {
+    console.error('Supabase load error:', err);
+    setSyncStatus('error', '✕ שגיאת טעינה');
+    return false;
+  }
+}
+
+// ─── LocalStorage fallback ────────────────────────────────────────────
+function loadFromLocal() {
   KEYS.forEach(k => {
     try {
-      const raw = localStorage.getItem(`fin_${k}_v3`);
+      const raw = localStorage.getItem('fin_' + k + '_v3');
       state[k] = raw ? JSON.parse(raw) : DEFAULTS[k].map(r => ({...r}));
-    } catch {
-      state[k] = DEFAULTS[k].map(r => ({...r}));
-    }
+    } catch { state[k] = DEFAULTS[k].map(r => ({...r})); }
   });
 }
 
-function save() {
-  KEYS.forEach(k => localStorage.setItem(`fin_${k}_v3`, JSON.stringify(state[k])));
+function saveToLocal() {
+  KEYS.forEach(k => localStorage.setItem('fin_' + k + '_v3', JSON.stringify(state[k])));
 }
 
-// ─── BTC מחיר חי ────────────────────────────────────────
+function save() {
+  saveToLocal();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToSupabase, 1500);
+}
+
+// ─── BTC מחיר חי ──────────────────────────────────────────────────────
 async function fetchBtcPrice() {
   try {
-    const res  = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { cache: 'no-store' });
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { cache: 'no-store' });
     const data = await res.json();
     btcPriceUSD = data.bitcoin.usd;
     const ils = Math.round(btcPriceUSD * getRate());
-    document.getElementById('btcPriceLabel').textContent =
-      `BTC: $${btcPriceUSD.toLocaleString()} | ₪${ils.toLocaleString()}`;
+    document.getElementById('btcPriceLabel').textContent = 'BTC: $' + btcPriceUSD.toLocaleString() + ' | ₪' + ils.toLocaleString();
     updateTotals();
   } catch {
     document.getElementById('btcPriceLabel').textContent = 'BTC: שגיאה';
   }
 }
 
-// ─── Helpers ────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────
 function getRate() { return parseFloat(document.getElementById('usdRate').value) || 3.65; }
-
 function toILS(amount, currency) {
   const r = getRate();
   if (currency === 'USD') return amount * r;
@@ -281,128 +303,90 @@ function toILS(amount, currency) {
   if (currency === 'BTC') return amount * btcPriceUSD * r;
   return amount;
 }
-
 function fmt(n) { return '₪' + Math.round(n).toLocaleString('he-IL'); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
-// ─── Render ─────────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────────────────
 function renderTable(type) {
-  const tbody = document.getElementById(`${type}Body`);
-  const data  = state[type];
+  const tbody = document.getElementById(type + 'Body');
+  const data = state[type];
   tbody.innerHTML = '';
   data.forEach((row, i) => {
     const isBTC = row.currency === 'BTC';
     const isILS = row.currency === 'ILS';
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input type="text" value="${esc(row.name)}"    onchange="setField('${type}',${i},'name',this.value)"></td>
-      <td><input type="text" value="${esc(row.details)}" onchange="setField('${type}',${i},'details',this.value)"></td>
-      <td>
-        <select onchange="setCurrency('${type}',${i},this.value)">
-          ${['ILS','USD','EUR','BTC'].map(c =>
-            `<option value="${c}"${c===row.currency?' selected':''}>${c}</option>`
-          ).join('')}
-        </select>
-      </td>
-      <td>
-        <input type="text"
-          id="amt-${type}-${i}"
-          class="${isILS ? 'amount-ils' : 'amount'}"
-          value="${row.amount}"
-          ${isBTC ? 'readonly title="מחושב אוטומטית לפי מחיר BTC"' : ''}
-          onchange="setAmount('${type}',${i},this.value)">
-      </td>
-      <td class="ils-value${['pensions','training'].includes(type)?' purple':''}"
-          id="ils-${type}-${i}">${fmt(toILS(row.amount, row.currency))}</td>
-      <td class="delete-col"><button class="btn-del" onclick="deleteRow('${type}',${i})">×</button></td>
-    `;
+    tr.innerHTML =
+      '<td><input type="text" value="' + esc(row.name) + '" onchange="setField('' + type + '',' + i + ','name',this.value)"></td>' +
+      '<td><input type="text" value="' + esc(row.details) + '" onchange="setField('' + type + '',' + i + ','details',this.value)"></td>' +
+      '<td><select onchange="setCurrency('' + type + '',' + i + ',this.value)">' +
+        ['ILS','USD','EUR','BTC'].map(c => '<option value="' + c + '"' + (c===row.currency?' selected':'') + '>' + c + '</option>').join('') +
+      '</select></td>' +
+      '<td><input type="text" id="amt-' + type + '-' + i + '" class="' + (isILS ? 'amount-ils' : 'amount') + '" value="' + row.amount + '" ' + (isBTC ? 'readonly title="מחושב אוטומטית לפי מחיר BTC"' : '') + ' onchange="setAmount('' + type + '',' + i + ',this.value)"></td>' +
+      '<td class="ils-value' + (['pensions','training'].includes(type) ? ' purple' : '') + '" id="ils-' + type + '-' + i + '">' + fmt(toILS(row.amount, row.currency)) + '</td>' +
+      '<td class="delete-col"><button class="btn-del" onclick="deleteRow('' + type + '',' + i + ')">×</button></td>';
     tbody.appendChild(tr);
   });
 }
 
-// ─── עדכון סכומים — ללא re-render ───────────────────────
 function updateTotals() {
   const sum = type => state[type].reduce((s,r) => s + toILS(r.amount, r.currency), 0);
-
-  // עדכן תאי ILS בשורות
   KEYS.forEach(type => {
     state[type].forEach((row, i) => {
-      const el = document.getElementById(`ils-${type}-${i}`);
+      const el = document.getElementById('ils-' + type + '-' + i);
       if (el) el.textContent = fmt(toILS(row.amount, row.currency));
     });
   });
-
   const aTotal = sum('assets');
   const lTotal = sum('liabilities');
-  const net    = aTotal - lTotal;
+  const net = aTotal - lTotal;
   const pTotal = sum('pensions');
   const tTotal = sum('training');
-
-  document.getElementById('assetsTotalCell').textContent      = fmt(aTotal);
+  document.getElementById('assetsTotalCell').textContent = fmt(aTotal);
   document.getElementById('liabilitiesTotalCell').textContent = fmt(lTotal);
-  document.getElementById('pensionsTotalCell').textContent    = fmt(pTotal);
-  document.getElementById('trainingTotalCell').textContent    = fmt(tTotal);
-  document.getElementById('totalAssets').textContent          = fmt(aTotal);
-  document.getElementById('totalLiabilities').textContent     = fmt(lTotal);
-  document.getElementById('netWorth').textContent             = fmt(net);
-  document.getElementById('netWorthBig').textContent          = fmt(net);
-  document.getElementById('totalPensions').textContent        = fmt(pTotal);
-  document.getElementById('totalTraining').textContent        = fmt(tTotal);
+  document.getElementById('pensionsTotalCell').textContent = fmt(pTotal);
+  document.getElementById('trainingTotalCell').textContent = fmt(tTotal);
+  document.getElementById('totalAssets').textContent = fmt(aTotal);
+  document.getElementById('totalLiabilities').textContent = fmt(lTotal);
+  document.getElementById('netWorth').textContent = fmt(net);
+  document.getElementById('netWorthBig').textContent = fmt(net);
+  document.getElementById('totalPensions').textContent = fmt(pTotal);
+  document.getElementById('totalTraining').textContent = fmt(tTotal);
 }
 
-// ─── Mutations ──────────────────────────────────────────
-function setField(type, i, field, val) {
-  state[type][i][field] = val;
-  save();
-}
-
+function setField(type, i, field, val) { state[type][i][field] = val; save(); }
 function setAmount(type, i, val) {
   const num = parseFloat(String(val).replace(/,/g,'').replace(/[^\d.]/g,'')) || 0;
   state[type][i].amount = num;
-  const inp = document.getElementById(`amt-${type}-${i}`);
+  const inp = document.getElementById('amt-' + type + '-' + i);
   if (inp) inp.value = num;
-  save();
-  updateTotals();
+  save(); updateTotals();
 }
-
-function setCurrency(type, i, val) {
-  state[type][i].currency = val;
-  save();
-  renderTable(type);
-  updateTotals();
-}
-
+function setCurrency(type, i, val) { state[type][i].currency = val; save(); renderTable(type); updateTotals(); }
 function addRow(type) {
   state[type].push({ name: 'פריט חדש', details: '', currency: 'ILS', amount: 0 });
-  save();
-  renderTable(type);
-  updateTotals();
-  const rows = document.getElementById(`${type}Body`).querySelectorAll('tr');
-  const inp  = rows[rows.length-1]?.querySelector('input');
+  save(); renderTable(type); updateTotals();
+  const rows = document.getElementById(type + 'Body').querySelectorAll('tr');
+  const inp = rows[rows.length-1]?.querySelector('input');
   if (inp) { inp.focus(); inp.select(); }
 }
-
-function deleteRow(type, i) {
-  state[type].splice(i, 1);
-  save();
-  renderTable(type);
-  updateTotals();
-}
-
+function deleteRow(type, i) { state[type].splice(i, 1); save(); renderTable(type); updateTotals(); }
 function resetData() {
   if (!confirm('לאפס את כל הנתונים לברירת המחדל?')) return;
   KEYS.forEach(k => { state[k] = DEFAULTS[k].map(r => ({...r})); });
-  save();
-  KEYS.forEach(renderTable);
-  updateTotals();
+  save(); KEYS.forEach(renderTable); updateTotals();
 }
 
-// ─── Init ───────────────────────────────────────────────
-loadData();
-KEYS.forEach(renderTable);
-updateTotals();
-fetchBtcPrice();
-setInterval(fetchBtcPrice, 60000);
+// ─── Init ─────────────────────────────────────────────────────────────
+async function init() {
+  loadFromLocal();
+  KEYS.forEach(renderTable);
+  updateTotals();
+  const loaded = await loadFromSupabase();
+  if (loaded) { KEYS.forEach(renderTable); updateTotals(); }
+  fetchBtcPrice();
+  setInterval(fetchBtcPrice, 60000);
+}
+init();
 </script>
 </body>
 </html>
